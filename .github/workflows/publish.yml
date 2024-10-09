@@ -21,7 +21,12 @@ jobs:
         with:
           dotnet-version: '8.0'
 
-      - name: Pack
+      - name: Build native libraries
+        run: |
+          cd native
+          zig build all -Doptimize=ReleaseFast
+
+      - name: Pack bindings
         run: dotnet pack Tracy.NET -c Release -p:Version=${{ env.CURRENT_TAG }}
 
       - name: Publish

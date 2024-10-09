@@ -18,5 +18,10 @@ jobs:
         with:
           dotnet-version: '8.0'
 
-      - name: Build
+      - name: Build native libraries
+        run: |
+          cd native
+          zig build
+
+      - name: Build bindings
         run: dotnet build Tracy.NET
