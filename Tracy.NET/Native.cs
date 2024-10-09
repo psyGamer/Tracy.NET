@@ -35,6 +35,22 @@ internal static unsafe partial class Native
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void TracyEmitZoneValue(TracyCZoneContext ctx, ulong value);
 
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_mark")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitFrameMark(CString name);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_mark_start")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitFrameMarkStart(CString name);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_mark_end")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitFrameMarkEnd(CString name);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_image")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitFrameImage(void* image, ushort w, ushort h, byte offset, int flip);
+
     #endregion
     #region Types
 
