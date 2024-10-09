@@ -1,6 +1,11 @@
+# C#
 bin/
 obj/
 .idea
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# Zig
+.zig-cache
+native/runtimes

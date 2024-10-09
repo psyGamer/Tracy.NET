@@ -24,6 +24,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="..\native\runtimes\**">
+      <PackagePath>runtimes/</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+
     <None Include="..\README.md;icon.png" Pack="true" PackagePath="/"/>
   </ItemGroup>
 

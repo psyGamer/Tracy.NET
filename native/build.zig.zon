@@ -1,0 +1,13 @@
+.{
+    .name = "tracy",
+    .version = "0.11.1",
+    .minimum_zig_version = "0.13.0",
+
+    .dependencies = .{
+        .tracy = .{
+            .url = "git+https://github.com/wolfpld/tracy#v0.11.1",
+            .hash = "122022a478dccaed1309fb5d022f4041eec45d40c93a855ed24fad970774c2426d91",
+        },
+    },
+    .paths = .{""},
+}
