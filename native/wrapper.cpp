@@ -1,8 +1,8 @@
 // Exposes Tracy's C++ API via the C ABI
 
-#include <Tracy/tracy/Tracy.hpp>
+#include <tracy/Tracy.hpp>
 
-extern "C" 
+extern "C"
 {
 
 TRACY_API void TracyCSetProgramName(const char* name) {
