@@ -4,8 +4,29 @@ using static Tracy.Native;
 
 namespace Tracy;
 
+/// High-level C# bindings for Tracy
 public unsafe class Tracy
 {
+    #region General
+
+    /// Checks whether the Tracy Server is connected
+    public static bool IsConnected() => TracyConnected() != 0;
+
+    /// Changes the name of the program for the client-discovery
+    public static void SetProgramName(string name)
+    {
+        using var nameStr = new CString(name);
+        TracySetProgramName(nameStr);
+    }
+
+    /// Changes the name of the current thread in the profiler
+    public static void SetThreadName(string name)
+    {
+        using var nameStr = new CString(name);
+        TracySetThreadName(nameStr);
+    }
+
+    #endregion
     #region Frames
 
     /// Marks the current frame as completed

@@ -11,6 +11,14 @@ internal static unsafe partial class Native
 
     #region Functions
 
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_set_thread_name")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracySetThreadName(CString name);
+
+    [LibraryImport(LibraryName, EntryPoint = "TracyCSetProgramName")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracySetProgramName(CString name);
+
     [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_zone_begin")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial TracyCZoneContext TracyEmitZoneBegin(TracySourceLocationData* srcloc, int active);
@@ -34,6 +42,10 @@ internal static unsafe partial class Native
     [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_zone_value")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void TracyEmitZoneValue(TracyCZoneContext ctx, ulong value);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_connected")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int TracyConnected();
 
     [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_mark")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
