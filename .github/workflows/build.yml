@@ -13,14 +13,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0'
       - name: Setup Zig
         uses: mlugg/setup-zig@v1.2.1
         with:
           version: '0.13.0'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
 
       - name: Build native libraries
         run: |

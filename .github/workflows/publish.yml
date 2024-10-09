@@ -16,22 +16,22 @@ jobs:
       - name: Get current tag
         run: echo "CURRENT_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0'
       - name: Setup Zig
         uses: mlugg/setup-zig@v1.2.1
         with:
           version: '0.13.0'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
 
       - name: Build native libraries
         run: |
           cd native
           zig build all -Doptimize=ReleaseFast
 
-      - name: Pack bindings
-        run: dotnet pack Tracy.NET -c Release -p:Version=${{ env.CURRENT_TAG }}
+      - name: Build bindings
+        run: dotnet build Tracy.NET -c Release -p:Version=${{ env.CURRENT_TAG }}
 
       - name: Publish
         run: nuget push Tracy.NET/bin/Release/Tracy.NET.${{ env.CURRENT_TAG }}.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{ secrets.NUGET_API_KEY }}
