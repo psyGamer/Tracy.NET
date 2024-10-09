@@ -72,16 +72,19 @@ fn installTracy(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
         .target = target,
         .optimize = optimize,
     });
+
+    tracy_client.addIncludePath(tracy_dep.path("public"));
+
     tracy_client.linkLibCpp();
     tracy_client.addCSourceFile(.{
         .file = tracy_dep.path("public/TracyClient.cpp"),
         .flags = &.{},
     });
+
     tracy_client.addCSourceFile(.{
         .file = b.path("wrapper.cpp"),
         .flags = &.{},
     });
-    tracy_client.defineCMacro("TRACY_ENABLE", null);
 
     // See https://github.com/wolfpld/tracy/blob/v0.11.1/public/TracyClient.cpp#L54-L57
     if (target.result.os.tag == .windows) {
@@ -90,6 +93,8 @@ fn installTracy(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
         tracy_client.linkSystemLibrary("advapi32");
         tracy_client.linkSystemLibrary("user32");
     }
+
+    tracy_client.defineCMacro("TRACY_ENABLE", null);
 
     if (tracy_on_demand)
         tracy_client.defineCMacro("TRACY_ON_DEMAND", null);
