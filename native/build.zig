@@ -51,11 +51,14 @@ pub fn build(b: *std.Build) !void {
     b.getInstallStep().dependOn(&installTracy(b, target, optimize).step);
 
     // Install all targets
-    const targets: [4]std.Build.ResolvedTarget = .{
+    const targets = [_]std.Build.ResolvedTarget{
         b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "x86_64-linux-gnu" })),
+        b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "aarch64-linux-gnu" })),
         b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "x86_64-macos" })),
-        b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "x86_64-windows-gnu" })),
+        b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "aarch64-macos" })),
         b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "x86-windows-gnu" })),
+        b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "x86_64-windows-gnu" })),
+        b.resolveTargetQuery(try std.Target.Query.parse(.{ .arch_os_abi = "aarch64-windows-gnu" })),
     };
 
     for (targets) |release_target| {
