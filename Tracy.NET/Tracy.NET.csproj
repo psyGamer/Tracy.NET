@@ -3,8 +3,28 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <Title>Tracy.NET</Title>
+    <Description>Handwritten bindings for the Tracy Profiler.</Description>
+    <Authors>psyGamer</Authors>
+    <RepositoryUrl>https://github.com/psyGamer/Tracy.NET</RepositoryUrl>
+
+    <PackageType>Dependency</PackageType>
+    <PackageId>Tracy.NET</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>tracy;profiler</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReleaseNotes>Automated release.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md;icon.png" Pack="true" PackagePath="/"/>
+  </ItemGroup>
 
 </Project>
