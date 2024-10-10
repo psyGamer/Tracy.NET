@@ -5,6 +5,7 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,5 +13,7 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.1.548"/>
 
     <PackageReference Include="Mono.Cecil" Version="0.11.6"/>
+    <PackageReference Include="MonoMod.Utils" Version="25.0.7"/>
   </ItemGroup>
+
 </Project>

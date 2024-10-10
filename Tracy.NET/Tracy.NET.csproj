@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+<!--    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>-->
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
@@ -34,17 +34,16 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Content Include="..\native\runtimes\**" Pack="true" PackagePath="runtimes/"/>
-    <Content Include="..\Tracy.NET.MSBuild\Tracy.NET.MSBuild.props" Pack="true" PackagePath="build/Tracy.NET.props"/>
-
     <None Include="..\README.md;icon.png" Pack="true" PackagePath="/"/>
+
+    <Content Include="..\native\runtimes\**" Pack="true" PackagePath="runtimes/"/>
+
+    <!-- Workaround for NuGet not including assets of sub-projects -->
+    <Content Include="..\Tracy.NET.MSBuild\Tracy.NET.MSBuild.props" Pack="true" PackagePath="build/Tracy.NET.props"/>
+    <Content Include="..\Tracy.NET.MSBuild\bin\$(Configuration)\netstandard2.0\Tracy.NET.MSBuild.dll" Pack="true" PackagePath="build/"/>
+    <Content Include="..\Tracy.NET.MSBuild\bin\$(Configuration)\netstandard2.0\Tracy.NET.MSBuild.pdb" Pack="true" PackagePath="build/"/>
+    <Content Include="..\Tracy.NET.MSBuild\bin\$(Configuration)\netstandard2.0\Mono.Cecil*.dll" Pack="true" PackagePath="build/"/>
+    <Content Include="..\Tracy.NET.MSBuild\bin\$(Configuration)\netstandard2.0\MonoMod*.dll" Pack="true" PackagePath="build/"/>
   </ItemGroup>
-
-  <!-- Workaround to include the assembly of Tracy.NET.MSBuild inside the NuGet package -->
-  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="ResolveReferences">
-    <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
-    </ItemGroup>
-  </Target>
-
+  
 </Project>
