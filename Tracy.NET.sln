@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tracy.NET", "Tracy.NET\Tracy.NET.csproj", "{8E8A0C46-4992-47B8-8C33-440D9DCDC1AA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tracy.NET.Test", "Tracy.NET.Test\Tracy.NET.Test.csproj", "{76AF9997-8F7F-4E0D-8DD6-FB3B2ED8191E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,8 @@ Global
 		{8E8A0C46-4992-47B8-8C33-440D9DCDC1AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E8A0C46-4992-47B8-8C33-440D9DCDC1AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E8A0C46-4992-47B8-8C33-440D9DCDC1AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76AF9997-8F7F-4E0D-8DD6-FB3B2ED8191E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76AF9997-8F7F-4E0D-8DD6-FB3B2ED8191E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76AF9997-8F7F-4E0D-8DD6-FB3B2ED8191E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <RestoreSources>$(RestoreSources);..\Tracy.NET\bin\Debug;..\Tracy.NET\bin\Release</RestoreSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tracy.NET" Version="0.11.1-dev"/>
+  </ItemGroup>
+
+</Project>

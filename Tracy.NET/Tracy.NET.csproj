@@ -7,6 +7,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -14,6 +16,7 @@
     <Description>Handwritten bindings for the Tracy Profiler.</Description>
     <Authors>psyGamer</Authors>
     <RepositoryUrl>https://github.com/psyGamer/Tracy.NET</RepositoryUrl>
+    <Version>0.11.1-dev</Version> <!-- Will be overwritten inside the release pipeline --> 
 
     <PackageType>Dependency</PackageType>
     <PackageId>Tracy.NET</PackageId>
