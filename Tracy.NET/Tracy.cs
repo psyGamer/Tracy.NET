@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using static Tracy.Native;
+using static TracyNET.Native;
 
-namespace Tracy;
+namespace TracyNET;
 
 /// High-level C# bindings for Tracy
 public unsafe class Tracy
@@ -15,14 +16,14 @@ public unsafe class Tracy
     /// Changes the name of the program for the client-discovery
     public static void SetProgramName(string name)
     {
-        using var nameStr = new CString(name);
+        var nameStr = GetCString(name, out _);
         TracySetProgramName(nameStr);
     }
 
     /// Changes the name of the current thread in the profiler
     public static void SetThreadName(string name)
     {
-        using var nameStr = new CString(name);
+        var nameStr = GetCString(name, out _);
         TracySetThreadName(nameStr);
     }
 
@@ -31,23 +32,26 @@ public unsafe class Tracy
 
     /// Marks the current frame as completed
     /// Should be called right after the graphics buffers have been swapped
+    /// <param name="name">If not null, creates a new secondary frame set</param>
     public static void MarkFrame(string? name = null)
     {
-        using var nameStr = new CString(name);
+        var nameStr = GetCString(name, out _);
         TracyEmitFrameMark(nameStr);
     }
 
     /// Marks the beginning of a discontinuous frame
+    /// <param name="name">If not null, creates a new secondary frame set</param>
     public static void MarkFrameStart(string? name = null)
     {
-        using var nameStr = new CString(name);
+        var nameStr = GetCString(name, out _);
         TracyEmitFrameMarkStart(nameStr);
     }
 
     /// Marks the end of a discontinuous frame
+    /// <param name="name">If not null, creates a new secondary frame set</param>
     public static void MarkFrameEnd(string? name = null)
     {
-        using var nameStr = new CString(name);
+        var nameStr = GetCString(name, out _);
         TracyEmitFrameMarkEnd(nameStr);
     }
 
@@ -80,10 +84,7 @@ public unsafe class Tracy
 
         /// Additional text to display along with the zone information
         public string Text {
-            set {
-                using var textStr = new CString(value);
-                TracyEmitZoneText(context, textStr, (ulong)value.Length);
-            }
+            set => TracyEmitZoneText(context, GetCString(value, out ulong textLen), textLen);
         }
 
         /// Additional numeric value to display along with the zone information
@@ -93,10 +94,7 @@ public unsafe class Tracy
 
         /// Dynamically change the name of the zone
         public string Name {
-            set {
-                using var nameStr = new CString(value);
-                TracyEmitZoneName(context, nameStr, (ulong)value.Length);
-            }
+            set => TracyEmitZoneName(context, GetCString(value, out ulong nameLen), nameLen);
         }
 
         /// Dynamically change the color of the zone
@@ -116,22 +114,39 @@ public unsafe class Tracy
         [CallerFilePath] string? file = null,
         [CallerLineNumber] int line = 0)
     {
-        using var nameStr = new CString(name);
-        using var functionStr = new CString(function);
-        using var fileStr = new CString(file);
-
-        var sourceLocation = new TracySourceLocationData
-        {
-            name = nameStr,
-            function = functionStr,
-            file = fileStr,
-            line = (uint)line,
-            color = color,
-        };
-        var context = TracyEmitZoneBegin(&sourceLocation, active ? 1 : 0);
+        var sourceLocation = TracyAllocSrclocName(
+            (uint)line,
+            GetCString(file, out ulong fileLen), fileLen,
+            GetCString(function, out ulong functionLen), functionLen,
+            GetCString(name, out ulong nameLen), nameLen,
+            color);
+        var context = TracyEmitZoneBeginAlloc(sourceLocation, active ? 1 : 0);
 
         return new ZoneContext(context);
     }
+
+    #endregion
+    #region Internal
+
+    // Tracy expects most string to be of static lifetime, so we need to cache them
+    private static readonly Dictionary<string, CString> stringCache = [];
+    private static CString GetCString(string? str, out ulong len)
+    {
+        if (str == null) {
+            len = 0;
+            return CString.Null;
+        }
+
+        len = (ulong)str.Length;
+
+        if (stringCache.TryGetValue(str, out var cString))
+            return cString;
+
+        cString = new CString(str);
+        stringCache[str] = cString;
+        return cString;
+    }
+
 
     #endregion
 }

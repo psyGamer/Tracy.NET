@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Tracy;
+namespace TracyNET;
 
 /// Direct bindings for the native C functions
 internal static unsafe partial class Native
@@ -19,9 +19,21 @@ internal static unsafe partial class Native
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void TracySetProgramName(CString name);
 
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_alloc_srcloc")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial TracySourceLocationData* TracyAllocSrcloc(uint line, CString source, ulong sourceSz, CString function, ulong functionSz, uint color);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_alloc_srcloc_name")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial TracySourceLocationData* TracyAllocSrclocName(uint line, CString source, ulong sourceSz, CString function, ulong functionSz, CString name, ulong nameSz, uint color);
+
     [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_zone_begin")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial TracyCZoneContext TracyEmitZoneBegin(TracySourceLocationData* srcloc, int active);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_zone_begin_alloc")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial TracyCZoneContext TracyEmitZoneBeginAlloc(TracySourceLocationData* srcloc, int active);
 
     [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_zone_end")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -67,10 +79,21 @@ internal static unsafe partial class Native
     #region Types
 
     /// Wrapper around C strings
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly struct CString(string? str) : IEquatable<CString>, IDisposable
+    [StructLayout(LayoutKind.Explicit)]
+    public readonly struct CString(IntPtr data) : IEquatable<CString>, IDisposable
     {
-        private readonly IntPtr data = Marshal.StringToHGlobalAnsi(str);
+        public static readonly CString Null = new(IntPtr.Zero);
+
+        [FieldOffset(0)]
+        private readonly IntPtr data = data;
+
+        public CString(string? str) : this(Marshal.StringToHGlobalAnsi(str)) { }
+
+        /// Allocates a new unmanaged C string
+        public static CString Create(string? str, out ulong len) {
+            len = (ulong)(str?.Length ?? 0);
+            return new CString(str);
+        }
 
         /// Frees the allocated string
         public void Dispose() => Marshal.FreeHGlobal(data);
@@ -78,7 +101,7 @@ internal static unsafe partial class Native
         /// Compares both strings for the same content
         public bool Equals(CString other)
         {
-            char* a = (char*)this.data, b = (char*)other.data;
+            byte* a = (byte*)this.data, b = (byte*)other.data;
             while (*a != 0 || *b != 0)
             {
                 if (*a != *b) return false;
