@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -28,12 +30,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\native\runtimes\**">
-      <PackagePath>runtimes/</PackagePath>
-      <Pack>true</Pack>
-    </Content>
+    <ProjectReference Include="..\Tracy.NET.MSBuild\Tracy.NET.MSBuild.csproj" PrivateAssets="All"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="..\native\runtimes\**" Pack="true" PackagePath="runtimes/"/>
+    <Content Include="..\Tracy.NET.MSBuild\Tracy.NET.MSBuild.props" Pack="true" PackagePath="build/Tracy.NET.props"/>
 
     <None Include="..\README.md;icon.png" Pack="true" PackagePath="/"/>
   </ItemGroup>
+
+  <!-- Workaround to include the assembly of Tracy.NET.MSBuild inside the NuGet package -->
+  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+    </ItemGroup>
+  </Target>
 
 </Project>
