@@ -287,11 +287,11 @@ public class InstrumentMethodsTask : Task
         {
             cur.Index++; // Exception handler starts after zone begin
 
+            const int zoneBeginInstrCount = 6 + 1 + 1; // 6 parameters + 1 call + 1 store
+
             if (il.Body.ExceptionHandlers.FirstOrDefault(handler => handler.TryStart == cur.Next) is { HandlerType: ExceptionHandlerType.Finally } exceptionHandler)
             {
-
                 // using / try-finally block
-                const int zoneBeginInstrCount = 6 + 1 + 1; // 6 parameters + 1 call + 1 store
 
                 // Remove zone begin
                 cur.Index -= zoneBeginInstrCount;
@@ -323,9 +323,89 @@ public class InstrumentMethodsTask : Task
             }
             else
             {
-                // TODO: Handle manually disposed zone
+                // Manually disposed zone
+
+                // Leave variable uninitialized
+                cur.Index -= zoneBeginInstrCount;
+                cur.RemoveRange(zoneBeginInstrCount);
             }
         }
+
+        // Stub-out remaining calls to ZoneContext
+        MethodReference? callTarget = null;
+        for (cur.Index = 0; cur.TryGotoNext(instr => instr.MatchCall(out callTarget));)
+        {
+            if (callTarget == null || callTarget.DeclaringType.FullName != "TracyNET.Tracy/ZoneContext")
+                continue;
+
+            if (callTarget.Name == "get_Active")
+            {
+                // Remove load, otherwise pop
+                if (cur.Prev.MatchLdloc(out _) || cur.Prev.MatchLdloca(out _) || cur.Prev.MatchLdarg(out _) || cur.Prev.MatchLdarga(out _))
+                {
+                    cur.Index--;
+                    cur.Remove(); // Remove load
+                    cur.Remove(); // Remove call
+                }
+                else
+                {
+                    il.Instrs[cur.Index] = cur.IL.Create(OpCodes.Pop); // Replace call
+                }
+
+                cur.EmitLdcI4(0 /*false*/);
+            }
+            else if (callTarget.Name is "set_Text" or "set_Value" or "set_Name" or "set_Color")
+            {
+                // Remove load, otherwise pop (parameter)
+                if (cur.Prev.MatchLdcI4(out _) || cur.Prev.MatchLdstr(out _))
+                {
+                    cur.Index--;
+                    cur.Remove();
+
+                    // Remove load, otherwise pop (zone)
+                    if (cur.Prev.MatchLdloc(out _) || cur.Prev.MatchLdloca(out _) || cur.Prev.MatchLdarg(out _) || cur.Prev.MatchLdarga(out _))
+                    {
+                        cur.Index--;
+                        cur.Remove(); // Remove load
+                        cur.Remove(); // Remove call
+                    }
+                    else
+                    {
+                        il.Instrs[cur.Index] = cur.IL.Create(OpCodes.Pop); // Replace call
+                    }
+                }
+                else
+                {
+                    il.Instrs[cur.Index] = cur.IL.Create(OpCodes.Pop); // Replace call
+                    cur.EmitPop(); // Could technically resolve dependency chain of parameter, but let's keep it simple
+                }
+            }
+            else if (callTarget.Name == "Dispose")
+            {
+                // Remove load, otherwise pop
+                if (cur.Prev.MatchLdloc(out _) || cur.Prev.MatchLdloca(out _) || cur.Prev.MatchLdarg(out _) || cur.Prev.MatchLdarga(out _))
+                {
+                    cur.Index--;
+                    cur.Remove(); // Remove load
+                    cur.Remove(); // Remove call
+                }
+                else
+                {
+                    il.Instrs[cur.Index] = cur.IL.Create(OpCodes.Pop); // Replace call
+                }
+            }
+        }
+
+        Console.WriteLine(il);
+
+        // Cleanup
+        OptimizeMethod(il);
+    }
+
+    /// Removes unused variables
+    private void OptimizeMethod(ILContext il)
+    {
+        var cur = new ILCursor(il);
 
         // Remove unused variables / update references
         HashSet<int> usedVariables = [];

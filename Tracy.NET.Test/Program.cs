@@ -56,7 +56,27 @@ public class Program
             using var zone3 = Tracy.Zone("My Custom Zone 3");
             // Work
             Thread.Sleep(10);
+
+            MethodA();
         }
+    }
+
+    static void MethodA()
+    {
+        var zone = Tracy.Zone();
+        // Work A
+        Thread.Sleep(5);
+        MethodB(zone);
+        zone.Dispose();
+        Console.WriteLine(zone.Active);
+        zone.Text = "hi";
+    }
+
+    static void MethodB(Tracy.ZoneContext zone)
+    {
+        // Work B
+        Thread.Sleep(5);
+        zone.Dispose();
     }
 
     [Tracy.ProfileMethod]
