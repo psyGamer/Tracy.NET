@@ -30,6 +30,10 @@ jobs:
           cd native
           zig build all -Doptimize=ReleaseFast
 
+      # Ensures that the assemblies for the MSBuild task are present before packaging
+      - name: Build MSBuild tasks
+        run: dotnet build Tracy.NET
+
       - name: Build bindings
         run: dotnet build Tracy.NET -c Release -p:Version=${{ env.CURRENT_TAG }}
 
