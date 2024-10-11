@@ -27,6 +27,35 @@ public class Program
         while (true)
         {
             MyMethod();
+
+            using (Tracy.Zone("My Custom Zone"))
+            {
+                // Work
+                Thread.Sleep(10);
+            }
+
+            Console.WriteLine("Separator 1");
+
+            using (Tracy.ZoneContext zone1 = Tracy.Zone("My Custom Zone 1/1"), zone2 = Tracy.Zone("My Custom Zone 1/2"))
+            {
+                // Work
+                Thread.Sleep(10);
+            }
+
+            Console.WriteLine("Separator 2");
+
+            using (Tracy.Zone("My Custom Zone 2/1"))
+            using (Tracy.Zone("My Custom Zone 2/2"))
+            {
+                // Work
+                Thread.Sleep(10);
+            }
+
+            Console.WriteLine("Separator 3");
+
+            using var zone3 = Tracy.Zone("My Custom Zone 3");
+            // Work
+            Thread.Sleep(10);
         }
     }
 

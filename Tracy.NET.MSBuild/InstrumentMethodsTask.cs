@@ -108,6 +108,7 @@ public class InstrumentMethodsTask : Task
         {
             foreach (var method in type.Methods)
             {
+                // Full-method profiling
                 if (method.GetCustomAttribute("TracyNET.Tracy/ProfileMethod") is { } profileAttrib)
                 {
                     if (Enabled)
@@ -139,10 +140,17 @@ public class InstrumentMethodsTask : Task
 
                     new ILContext(method).Invoke(il => ProfileMethod(il, name: null, color: 0x000000, active: true, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
                 }
+
+                // Zone removal
+                if (!Enabled)
+                {
+                    new ILContext(method).Invoke(RemoveZones);
+                }
             }
         }
     }
 
+    // Puts a "using var zone = Tracy.Zone(...)" at the top of the method
     private void ProfileMethod(ILContext il, string? name, uint color, bool active, string function, string file, int line)
     {
         Log.LogMessage($"Applying full-method profiling to {il.Method.FullName}");
@@ -199,7 +207,7 @@ public class InstrumentMethodsTask : Task
             cur.EmitStloc(zoneVar);
         }
 
-        // // Begin try-block
+        // Begin try-block
         exceptionHandler.TryStart = cur.Next;
 
         // Convert all "ret" into "leave" instructions
@@ -267,6 +275,115 @@ public class InstrumentMethodsTask : Task
         }
 
         returnLabel.Target = cur.Prev;
+    }
+
+    private void RemoveZones(ILContext il)
+    {
+        Log.LogMessage($"Removing profiling zones from {il.Method.FullName}");
+
+        var cur = new ILCursor(il);
+
+        while (cur.TryGotoNext(MoveType.After, instr => instr.MatchCall("TracyNET.Tracy", "Zone")))
+        {
+            cur.Index++; // Exception handler starts after zone begin
+
+            if (il.Body.ExceptionHandlers.FirstOrDefault(handler => handler.TryStart == cur.Next) is { HandlerType: ExceptionHandlerType.Finally } exceptionHandler)
+            {
+
+                // using / try-finally block
+                const int zoneBeginInstrCount = 6 + 1 + 1; // 6 parameters + 1 call + 1 store
+
+                // Remove zone begin
+                cur.Index -= zoneBeginInstrCount;
+                cur.RemoveRange(zoneBeginInstrCount);
+
+                // Replace leave with br
+                cur.Next = exceptionHandler.TryEnd;
+
+                if (cur.Prev.OpCode == OpCodes.Leave)
+                    cur.Prev.OpCode = OpCodes.Br;
+                else if (cur.Prev.OpCode == OpCodes.Leave_S)
+                    cur.Prev.OpCode = OpCodes.Br_S;
+
+                // Remove finally-block
+                cur.Next = exceptionHandler.HandlerStart;
+                while (cur.Index < il.Instrs.Count && cur.Next != exceptionHandler.HandlerEnd) {
+                    cur.Remove();
+                }
+
+                if (cur.Index < il.Instrs.Count)
+                {
+                    // Re-target incoming handlers
+                    foreach (var handler in il.Body.ExceptionHandlers.Where(handler => handler.HandlerEnd == exceptionHandler.HandlerStart))
+                        handler.HandlerEnd = cur.Next;
+                }
+
+                il.Body.ExceptionHandlers.Remove(exceptionHandler);
+                cur.Index = 0;
+            }
+            else
+            {
+                // TODO: Handle manually disposed zone
+            }
+        }
+
+        // Remove unused variables / update references
+        HashSet<int> usedVariables = [];
+
+        for (cur.Index = 0; cur.Index < il.Instrs.Count; cur.Index++)
+        {
+            if (cur.Next!.MatchStloc(out int varIndex) ||
+                cur.Next!.MatchLdloc(out varIndex) ||
+                cur.Next!.MatchLdloca(out varIndex))
+            {
+                usedVariables.Add(varIndex);
+            }
+        }
+
+        var variablesToRemove = Enumerable.Range(0, il.Body.Variables.Count).Except(usedVariables).ToArray();
+
+        foreach (int index in variablesToRemove.OrderByDescending(idx => idx))
+            il.Body.Variables.RemoveAt(index);
+
+        int oldIndex = -1;
+
+        for (cur.Index = 0; cur.TryGotoNext(instr => instr.MatchStloc(out oldIndex));)
+        {
+            int newIndex = oldIndex - variablesToRemove.Count(idx => oldIndex > idx);
+            il.Instrs[cur.Index] = newIndex switch
+            {
+                0 => cur.IL.Create(OpCodes.Stloc_0),
+                1 => cur.IL.Create(OpCodes.Stloc_1),
+                2 => cur.IL.Create(OpCodes.Stloc_2),
+                3 => cur.IL.Create(OpCodes.Stloc_3),
+                <= byte.MaxValue => cur.IL.Create(OpCodes.Stloc_S, (byte)newIndex),
+                _ => cur.IL.Create(OpCodes.Stloc, newIndex)
+            };
+        }
+
+        for (cur.Index = 0; cur.TryGotoNext(instr => instr.MatchLdloc(out oldIndex));)
+        {
+            int newIndex = oldIndex - variablesToRemove.Count(idx => oldIndex > idx);
+            il.Instrs[cur.Index] = newIndex switch
+            {
+                0 => cur.IL.Create(OpCodes.Ldloc_0),
+                1 => cur.IL.Create(OpCodes.Ldloc_1),
+                2 => cur.IL.Create(OpCodes.Ldloc_2),
+                3 => cur.IL.Create(OpCodes.Ldloc_3),
+                <= byte.MaxValue => cur.IL.Create(OpCodes.Ldloc_S, (byte)newIndex),
+                _ => cur.IL.Create(OpCodes.Ldloc, newIndex)
+            };
+        }
+
+        for (cur.Index = 0; cur.TryGotoNext(instr => instr.MatchLdloca(out oldIndex));)
+        {
+            int newIndex = oldIndex - variablesToRemove.Count(idx => oldIndex > idx);
+            il.Instrs[cur.Index] = newIndex switch
+            {
+                <= byte.MaxValue => cur.IL.Create(OpCodes.Ldloca_S, (byte)newIndex),
+                _ => cur.IL.Create(OpCodes.Ldloca, newIndex)
+            };
+        }
     }
 }
 
