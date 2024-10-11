@@ -70,6 +70,17 @@ public unsafe class Tracy
     #endregion
     #region Zones
 
+    /// Inserts a profiling zone for this entire method
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class ProfileMethod(
+        string? name = null,
+        uint color = 0x000000,
+        bool active = true,
+        [CallerMemberName] string? function = null,
+        [CallerFilePath] string? file = null,
+        [CallerLineNumber] int line = 0
+    ) : Attribute;
+
     /// Represents a profiling zone
     public readonly struct ZoneContext : IDisposable
     {

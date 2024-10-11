@@ -12,8 +12,8 @@
     <PackageReference Include="Microsoft.Build.Framework" Version="15.1.548"/>
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.1.548"/>
 
-    <PackageReference Include="Mono.Cecil" Version="0.11.6"/>
-    <PackageReference Include="MonoMod.Utils" Version="25.0.7"/>
+    <PackageReference Include="Mono.Cecil" Version="0.11.4"/>
+    <PackageReference Include="MonoMod.Utils" Version="25.0.3"/>
   </ItemGroup>
 
 </Project>
