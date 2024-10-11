@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -225,10 +224,17 @@ public class InstrumentMethodsTask : Task
         if (nonVoidReturnType)
         {
             // Store return result
-            cur.Next!.OpCode = OpCodes.Stloc;
-            cur.Next!.Operand = returnVar;
+            if (cur.Next!.OpCode == OpCodes.Ret)
+            {
+                cur.Next!.OpCode = OpCodes.Stloc;
+                cur.Next!.Operand = returnVar;
+            }
+            else
+            {
+                cur.EmitStloc(returnVar);
+            }
         }
-        else
+        else if (cur.Next!.OpCode == OpCodes.Ret)
         {
             // Avoid dealing with retargeting labels
             cur.Next!.OpCode = OpCodes.Nop;
