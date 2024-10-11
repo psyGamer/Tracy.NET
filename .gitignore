@@ -1,11 +1,12 @@
+.idea
+
 # C#
 bin/
 obj/
-.idea
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
 
 # Zig
 .zig-cache
+
+# Build artifacts
 native/runtimes
+Tracy.NET/build
