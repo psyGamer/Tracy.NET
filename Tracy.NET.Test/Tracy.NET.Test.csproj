@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Tracy.NET" Version="0.11.1-dev"/>
+    <PackageReference Include="Tracy.NET" Version="0.11.1-dev" ProfileAllMethods="true"/>
   </ItemGroup>
 
 </Project>

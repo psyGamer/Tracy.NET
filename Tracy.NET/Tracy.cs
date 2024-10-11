@@ -70,16 +70,20 @@ public unsafe class Tracy
     #endregion
     #region Zones
 
+    // Used implicitly through Tracy.NET.MSBuild
+#pragma warning disable CS9113 // Parameter is unread.
+
     /// Inserts a profiling zone for this entire method
     [AttributeUsage(AttributeTargets.Method)]
     public sealed class ProfileMethod(
         string? name = null,
         uint color = 0x000000,
         bool active = true,
-        [CallerMemberName] string? function = null,
         [CallerFilePath] string? file = null,
         [CallerLineNumber] int line = 0
     ) : Attribute;
+
+#pragma warning restore CS9113 // Parameter is unread.
 
     /// Represents a profiling zone
     public readonly struct ZoneContext : IDisposable

@@ -14,6 +14,13 @@ public class InstrumentMethodsTask : Task
     [Required]
     public string AssemblyPath { get; set; } = null!;
 
+    [Required]
+    public ITaskItem[] PackageReference { get; set; } = null!;
+
+    // Config
+    private bool Enabled = true;
+    private bool ProfileAllMethods = false;
+
     private MethodDefinition m_object_GetType = null!;
     private MethodReference m_Type_getFullName = null!;
     private MethodReference m_string_Concat3 = null!;
@@ -25,14 +32,35 @@ public class InstrumentMethodsTask : Task
 
     public override bool Execute()
     {
+        // Detect config
+        var tracyPackage = PackageReference.First(item => item.TryGetMetadata("Identity", out var identity) && identity == "Tracy.NET");
+
+        if (tracyPackage.TryGetMetadata(nameof(Enabled), out string? valueStr) && bool.TryParse(valueStr, out bool value))
+            Enabled = value;
+        if (tracyPackage.TryGetMetadata(nameof(ProfileAllMethods), out valueStr) && bool.TryParse(valueStr, out value))
+            ProfileAllMethods = value;
+
         Log.LogMessage($"Patching assembly '{AssemblyPath}'");
 
         ModuleDefinition? module = null;
         try
         {
             // Read the module
-            var readerParams = new ReaderParameters(ReadingMode.Immediate) { ReadSymbols = false };
-            module = ModuleDefinition.ReadModule(AssemblyPath, readerParams);
+            var readerParams = new ReaderParameters(ReadingMode.Immediate) { ReadSymbols = true };
+            try
+            {
+                module = ModuleDefinition.ReadModule(AssemblyPath, readerParams);
+            }
+            catch (SymbolsNotFoundException)
+            {
+                readerParams.ReadSymbols = false;
+                module = ModuleDefinition.ReadModule(AssemblyPath, readerParams);
+            }
+            catch (SymbolsNotMatchingException)
+            {
+                readerParams.ReadSymbols = false;
+                module = ModuleDefinition.ReadModule(AssemblyPath, readerParams);
+            }
 
             // Apply patches
             PatchModule(module);
@@ -40,7 +68,7 @@ public class InstrumentMethodsTask : Task
             // Can't overwrite the existing path, since Cecil doesn't like that
             string tmpPath = AssemblyPath + ".tmp";
             // Write the module
-            module.Write(tmpPath, new WriterParameters { WriteSymbols = false });
+            module.Write(tmpPath, new WriterParameters { WriteSymbols = readerParams.ReadSymbols });
             module.Dispose();
 
             File.Delete(AssemblyPath);
@@ -83,24 +111,42 @@ public class InstrumentMethodsTask : Task
             {
                 if (method.GetCustomAttribute("TracyNET.Tracy/ProfileMethod") is { } profileAttrib)
                 {
-                    Log.LogMessage($"Applying full-method profiling to {method.FullName}");
+                    if (Enabled)
+                    {
+                        string? name = (string?)profileAttrib.ConstructorArguments[0].Value;
+                        uint color = (uint)profileAttrib.ConstructorArguments[1].Value;
+                        bool active = (bool)profileAttrib.ConstructorArguments[2].Value;
+                        string file = (string?)profileAttrib.ConstructorArguments[3].Value ?? method.DeclaringType.Name + ".cs";
+                        int line = (int)profileAttrib.ConstructorArguments[4].Value + 1; // The attribute is above the method
 
-                    new ILContext(method).Invoke(il => ProfileMethod(il, profileAttrib));
+                        new ILContext(method).Invoke(il => ProfileMethod(il, name, color, active, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
+                    }
                     method.CustomAttributes.Remove(profileAttrib);
+                }
+                else if (Enabled && ProfileAllMethods)
+                {
+                    string file;
+                    int line;
+                    if (method.DebugInformation.HasSequencePoints)
+                    {
+                        file = method.DebugInformation.SequencePoints[0].Document.Url;
+                        line = method.DebugInformation.SequencePoints[0].StartLine;
+                    }
+                    else
+                    {
+                        file = method.DeclaringType.Name + ".cs";
+                        line = 0;
+                    }
+
+                    new ILContext(method).Invoke(il => ProfileMethod(il, name: null, color: 0x000000, active: true, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
                 }
             }
         }
     }
 
-    private void ProfileMethod(ILContext il, CustomAttribute profileAttrib)
+    private void ProfileMethod(ILContext il, string? name, uint color, bool active, string function, string file, int line)
     {
-        // Parameters
-        string? name = (string?)profileAttrib.ConstructorArguments[0].Value;
-        uint color = (uint)profileAttrib.ConstructorArguments[1].Value;
-        bool active = (bool)profileAttrib.ConstructorArguments[2].Value;
-        string function = (string?)profileAttrib.ConstructorArguments[3].Value ?? il.Method.FullName;
-        string file = (string?)profileAttrib.ConstructorArguments[4].Value ?? il.Method.DeclaringType.Name + ".cs";
-        int line = (int)profileAttrib.ConstructorArguments[5].Value + 1; // The attribute is above the method
+        Log.LogMessage($"Applying full-method profiling to {il.Method.FullName}");
 
         var cur = new ILCursor(il);
 
@@ -215,5 +261,23 @@ public class InstrumentMethodsTask : Task
         }
 
         returnLabel.Target = cur.Prev;
+    }
+}
+
+// Taken from https://github.com/BepInEx/BepInEx.AssemblyPublicizer/blob/master/BepInEx.AssemblyPublicizer.MSBuild/Extensions.cs
+internal static class Extensions {
+    public static bool HasMetadata(this ITaskItem taskItem, string metadataName) {
+        var metadataNames = (ICollection<string>)taskItem.MetadataNames;
+        return metadataNames.Contains(metadataName);
+    }
+
+    public static bool TryGetMetadata(this ITaskItem taskItem, string metadataName, out string? metadata) {
+        if (taskItem.HasMetadata(metadataName)) {
+            metadata = taskItem.GetMetadata(metadataName);
+            return true;
+        }
+
+        metadata = null;
+        return false;
     }
 }
