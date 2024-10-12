@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Framework;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -16,11 +17,14 @@ public class InstrumentMethodsTask : Task
     [Required]
     public ITaskItem[] PackageReference { get; set; } = null!;
 
+    [Required]
+    public ITaskItem[] ReferencePath { get; set; } = null!;
+
     // Config
     private bool Enabled = true;
     private bool ProfileAllMethods = false;
 
-    private MethodDefinition m_object_GetType = null!;
+    private MethodReference m_object_GetType = null!;
     private MethodReference m_Type_getFullName = null!;
     private MethodReference m_string_Concat3 = null!;
 
@@ -45,7 +49,8 @@ public class InstrumentMethodsTask : Task
         try
         {
             // Read the module
-            var readerParams = new ReaderParameters(ReadingMode.Immediate) { ReadSymbols = true };
+            var helper = new MSBuildHelper(ReferencePath, Log);
+            var readerParams = helper.WithProviders(new ReaderParameters(ReadingMode.Immediate) { ReadSymbols = true });
             try
             {
                 module = ModuleDefinition.ReadModule(AssemblyPath, readerParams);
@@ -87,9 +92,12 @@ public class InstrumentMethodsTask : Task
     private void PatchModule(ModuleDefinition module)
     {
         // Setup important types / methods
-        m_object_GetType = module.TypeSystem.Object.Resolve().Methods.First(method => method.Name == "GetType");
+        m_object_GetType = module.ImportReference(module.TypeSystem.Object.Resolve().Methods.First(method =>
+            method.Name == nameof(GetType)));
         m_Type_getFullName = module.ImportReference(typeof(Type).GetProperty("FullName")!.GetGetMethod());
-        m_string_Concat3 = module.ImportReference(typeof(string).GetMethod(nameof(string.Concat), [typeof(string), typeof(string), typeof(string)])!);
+        m_string_Concat3 = module.ImportReference(module.TypeSystem.String.Resolve().Methods.First(method =>
+            method.Name == nameof(string.Concat) &&
+            method.Parameters.Count == 3 && method.Parameters.All(param => param.ParameterType.FullName == "System.String")));
 
         // We are in "build/Tracy.NET.MSBuild.dll" and we want "lib/net7.0/Tracy.NET.dll"
         string tracyPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "..", "lib", "net7.0", "Tracy.NET.dll");
@@ -108,43 +116,56 @@ public class InstrumentMethodsTask : Task
         {
             foreach (var method in type.Methods)
             {
-                // Full-method profiling
-                if (method.GetCustomAttribute("TracyNET.Tracy/ProfileMethod") is { } profileAttrib)
+                try
                 {
-                    if (Enabled)
+                    // Skip non-patchable methods
+                    if (method.IsAbstract)
                     {
-                        string? name = (string?)profileAttrib.ConstructorArguments[0].Value;
-                        uint color = (uint)profileAttrib.ConstructorArguments[1].Value;
-                        bool active = (bool)profileAttrib.ConstructorArguments[2].Value;
-                        string file = (string?)profileAttrib.ConstructorArguments[3].Value ?? method.DeclaringType.Name + ".cs";
-                        int line = (int)profileAttrib.ConstructorArguments[4].Value + 1; // The attribute is above the method
-
-                        new ILContext(method).Invoke(il => ProfileMethod(il, name, color, active, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
+                        continue;
                     }
-                    method.CustomAttributes.Remove(profileAttrib);
+
+                    // Full-method profiling
+                    if (method.GetCustomAttribute("TracyNET.Tracy/ProfileMethod") is { } profileAttrib)
+                    {
+                        if (Enabled)
+                        {
+                            string? name = (string?)profileAttrib.ConstructorArguments[0].Value;
+                            uint color = (uint)profileAttrib.ConstructorArguments[1].Value;
+                            bool active = (bool)profileAttrib.ConstructorArguments[2].Value;
+                            string file = (string?)profileAttrib.ConstructorArguments[3].Value ?? method.DeclaringType.Name + ".cs";
+                            int line = (int)profileAttrib.ConstructorArguments[4].Value + 1; // The attribute is above the method
+
+                            new ILContext(method).Invoke(il => ProfileMethod(il, name, color, active, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
+                        }
+                        method.CustomAttributes.Remove(profileAttrib);
+                    }
+                    else if (Enabled && ProfileAllMethods)
+                    {
+                        string file;
+                        int line;
+                        if (method.DebugInformation.HasSequencePoints)
+                        {
+                            file = method.DebugInformation.SequencePoints[0].Document.Url;
+                            line = method.DebugInformation.SequencePoints[0].StartLine;
+                        }
+                        else
+                        {
+                            file = method.DeclaringType.Name + ".cs";
+                            line = 0;
+                        }
+
+                        new ILContext(method).Invoke(il => ProfileMethod(il, name: null, color: 0x000000, active: true, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
+                    }
+
+                    // Zone removal
+                    if (!Enabled)
+                    {
+                        new ILContext(method).Invoke(RemoveZones);
+                    }
                 }
-                else if (Enabled && ProfileAllMethods)
+                catch (Exception ex)
                 {
-                    string file;
-                    int line;
-                    if (method.DebugInformation.HasSequencePoints)
-                    {
-                        file = method.DebugInformation.SequencePoints[0].Document.Url;
-                        line = method.DebugInformation.SequencePoints[0].StartLine;
-                    }
-                    else
-                    {
-                        file = method.DeclaringType.Name + ".cs";
-                        line = 0;
-                    }
-
-                    new ILContext(method).Invoke(il => ProfileMethod(il, name: null, color: 0x000000, active: true, function: $"{method.DeclaringType.FullName}::{method.Name}", file, line));
-                }
-
-                // Zone removal
-                if (!Enabled)
-                {
-                    new ILContext(method).Invoke(RemoveZones);
+                    Log.LogError($"Failed patching method {method.FullName}\n{ex}");
                 }
             }
         }
@@ -153,7 +174,7 @@ public class InstrumentMethodsTask : Task
     // Puts a "using var zone = Tracy.Zone(...)" at the top of the method
     private void ProfileMethod(ILContext il, string? name, uint color, bool active, string function, string file, int line)
     {
-        Log.LogMessage($"Applying full-method profiling to {il.Method.FullName}");
+        Log.LogMessage($"Applying full-method profiling to! {il.Method.FullName}");
 
         var cur = new ILCursor(il);
 
@@ -183,7 +204,8 @@ public class InstrumentMethodsTask : Task
             }
             else
             {
-                if (il.Method.IsStatic || !il.Method.IsVirtual)
+                // Structs may still contain virtual methods, so avoid calling .GetType() on those
+                if (il.Method.IsStatic || !il.Method.IsVirtual || il.Method.DeclaringType.IsValueType)
                 {
                     cur.EmitLdnull();
                 }
@@ -212,13 +234,14 @@ public class InstrumentMethodsTask : Task
 
         // Convert all "ret" into "leave" instructions
         var returnLabel = cur.DefineLabel();
-        for (; cur.Index < il.Instrs.Count; cur.Index++)
+        for (cur.Index = 0; cur.Index < il.Instrs.Count; cur.Index++)
         {
             if (cur.Next?.OpCode == OpCodes.Ret)
             {
                 if (nonVoidReturnType)
                 {
                     // Store return result
+                    cur.MoveAfterLabels();
                     cur.EmitStloc(returnVar);
                 }
 
@@ -227,36 +250,16 @@ public class InstrumentMethodsTask : Task
             }
         }
 
-        // End try-block
-        cur.Index = il.Instrs.Count - 1;
-        if (nonVoidReturnType)
-        {
-            // Store return result
-            if (cur.Next!.OpCode == OpCodes.Ret)
-            {
-                cur.Next!.OpCode = OpCodes.Stloc;
-                cur.Next!.Operand = returnVar;
-            }
-            else
-            {
-                cur.EmitStloc(returnVar);
-            }
-        }
-        else if (cur.Next!.OpCode == OpCodes.Ret)
-        {
-            // Avoid dealing with retargeting labels
-            cur.Next!.OpCode = OpCodes.Nop;
-        }
-
-        cur.Index++;
-
-        cur.EmitLeave(returnLabel);
-
         // End profiler zone
+        cur.Index = il.Instrs.Count;
         cur.EmitLdloca(zoneVar);
         exceptionHandler.TryEnd = cur.Prev;
         exceptionHandler.HandlerStart = cur.Prev; // Begin finally-block
         cur.EmitCall(m_TracyZoneContext_Dispose);
+
+        // These instructions are used for actual using-statements, however just a direct call should be more performant?
+        //     cur.EmitConstrained(t_TracyZoneContext);
+        //     cur.EmitCallvirt(il.Module.ImportReference(typeof(IDisposable).GetMethod("Dispose")!));
 
         // End finally-block
         cur.EmitEndfinally();
@@ -265,16 +268,14 @@ public class InstrumentMethodsTask : Task
         {
             // Retrieve return result
             cur.EmitLdloc(returnVar);
-            exceptionHandler.HandlerEnd = cur.Prev;
+            returnLabel.Target = exceptionHandler.HandlerEnd = cur.Prev;
             cur.EmitRet();
         }
         else
         {
             cur.EmitRet();
-            exceptionHandler.HandlerEnd = cur.Prev;
+            returnLabel.Target = exceptionHandler.HandlerEnd = cur.Prev;
         }
-
-        returnLabel.Target = cur.Prev;
     }
 
     private void RemoveZones(ILContext il)

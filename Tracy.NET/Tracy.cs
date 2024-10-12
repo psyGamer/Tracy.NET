@@ -98,22 +98,26 @@ public unsafe class Tracy
         public bool Active => context.active != 0;
 
         /// Additional text to display along with the zone information
-        public string Text {
+        public string Text
+        {
             set => TracyEmitZoneText(context, GetCString(value, out ulong textLen), textLen);
         }
 
         /// Additional numeric value to display along with the zone information
-        public ulong Value {
+        public ulong Value
+        {
             set => TracyEmitZoneValue(context, value);
         }
 
         /// Dynamically change the name of the zone
-        public string Name {
+        public string Name
+        {
             set => TracyEmitZoneName(context, GetCString(value, out ulong nameLen), nameLen);
         }
 
         /// Dynamically change the color of the zone
-        public uint Color {
+        public uint Color
+        {
             set => TracyEmitZoneColor(context, value);
         }
 
@@ -161,7 +165,6 @@ public unsafe class Tracy
         stringCache[str] = cString;
         return cString;
     }
-
 
     #endregion
 }

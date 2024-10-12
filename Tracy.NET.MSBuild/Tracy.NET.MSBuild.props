@@ -2,6 +2,6 @@
   <UsingTask TaskName="InstrumentMethodsTask" AssemblyFile="Tracy.NET.MSBuild.dll" />
 
   <Target Name="InstrumentMethods" AfterTargets="AfterBuild">
-    <InstrumentMethodsTask AssemblyPath="$(MSBuildProjectDirectory)/$(OutputPath)$(AssemblyName).dll" PackageReference="@(PackageReference)"/>
+    <InstrumentMethodsTask AssemblyPath="$(MSBuildProjectDirectory)/$(OutputPath)$(AssemblyName).dll" PackageReference="@(PackageReference)" ReferencePath="@(ReferencePath)"/>
   </Target>
 </Project>
