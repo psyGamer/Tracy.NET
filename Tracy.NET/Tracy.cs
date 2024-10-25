@@ -144,13 +144,54 @@ public unsafe class Tracy
         return new ZoneContext(context);
     }
 
+    #region Plots
+
+    public enum PlotType : int {
+        /// Values will be displayed as plain numbers.
+        Number = 0,
+        /// Treats the values as memory sizes. Will display kilobytes, megabytes, etc.
+        Memory = 1,
+        /// Values will be displayed as percentage (with value 100 being equal to 100%).
+        Percentage = 2,
+    }
+
+    /// Configures how plotted values are presented by the profiler
+    public static void ConfigurePlot(string name, PlotType plotType = PlotType.Number, bool step = false, bool fill = true, uint color = 0x000000)
+    {
+        var nameStr = GetCString(name, out ulong _);
+        TracyEmitPlotConfig(nameStr, (int)plotType, step ? 1 : 0, fill ? 1 : 0, color);
+    }
+
+    /// Plots the specified integer-value onto the graph
+    public static void Plot(string name, long value)
+    {
+        var nameStr = GetCString(name, out ulong _);
+        TracyEmitPlotInt(nameStr, value);
+    }
+
+    /// Plots the specified float-value onto the graph
+    public static void Plot(string name, float value)
+    {
+        var nameStr = GetCString(name, out ulong _);
+        TracyEmitPlotFloat(nameStr, value);
+    }
+
+    /// Plots the specified double-value onto the graph
+    public static void Plot(string name, double value)
+    {
+        var nameStr = GetCString(name, out ulong _);
+        TracyEmitPlotDouble(nameStr, value);
+    }
+
+    #endregion
+
     #endregion
     #region Messages
 
     /// Logs a message to tracy
     public static void Message(string text, uint color = 0x000000)
     {
-        using var textStr = GetCString(text, out ulong textLen);
+        var textStr = GetCString(text, out ulong textLen);
 
         if (color == 0x000000)
             TracyEmitMessageColor(textStr, textLen, color, 0);

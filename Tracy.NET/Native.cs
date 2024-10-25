@@ -55,6 +55,30 @@ internal static unsafe partial class Native
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void TracyEmitZoneValue(TracyCZoneContext ctx, ulong value);
 
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_plot_config")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitPlotConfig(CString name, int type, int step, int fill, uint color);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_plot_int")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitPlotInt(CString name, long val);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_plot_float")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitPlotFloat(CString name, float val);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_plot")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitPlotDouble(CString name, double val);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_message")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitMessage(CString txt, ulong size, int callstack);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_messageC")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitMessageColor(CString txt, ulong size, uint color, int callstack);
+
     [LibraryImport(LibraryName, EntryPoint = "___tracy_connected")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial int TracyConnected();
@@ -74,14 +98,6 @@ internal static unsafe partial class Native
     [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_image")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void TracyEmitFrameImage(void* image, ushort w, ushort h, byte offset, int flip);
-
-    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_message")]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void TracyEmitMessage(CString txt, ulong size, int callstack);
-
-    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_imageC")]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void TracyEmitMessageColor(CString txt, ulong size, uint color, int callstack);
 
     #endregion
     #region Types
