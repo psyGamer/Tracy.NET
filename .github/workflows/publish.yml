@@ -34,7 +34,7 @@ jobs:
 
       # Ensures that the assemblies for the MSBuild task are present before packaging
       - name: Build MSBuild tasks
-        run: dotnet build Tracy.NET.MSBuild
+        run: dotnet build Tracy.NET.MSBuild -c Release -p:Version=${{ env.CURRENT_TAG }}
 
       - name: Build bindings
         run: dotnet build Tracy.NET -c Release -p:Version=${{ env.CURRENT_TAG }}
