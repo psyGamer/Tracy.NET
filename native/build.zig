@@ -164,23 +164,23 @@ fn installTracy(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
 
     if (target.result.os.tag == .linux) {
         if (target.result.cpu.arch == .x86_64) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/linux-x64/libTracyClient.so");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/linux-x64/native/libTracyClient.so");
         } else if (target.result.cpu.arch == .aarch64) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/linux-arm64/libTracyClient.so");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/linux-arm64/native/libTracyClient.so");
         }
     } else if (target.result.os.tag == .macos) {
         if (target.result.cpu.arch == .x86_64) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/osx-x64/libTracyClient.dylib");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/osx-x64/native/libTracyClient.dylib");
         } else if (target.result.cpu.arch == .aarch64) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/osx-arm64/libTracyClient.dylib");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/osx-arm64/native/libTracyClient.dylib");
         }
     } else if (target.result.os.tag == .windows) {
         if (target.result.cpu.arch == .x86) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/win-x86/TracyClient.dll");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/win-x86/native/TracyClient.dll");
         } else if (target.result.cpu.arch == .x86_64) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/win-x64/TracyClient.dll");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/win-x64/native/TracyClient.dll");
         } else if (target.result.cpu.arch == .aarch64) {
-            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/win-arm64/TracyClient.dll");
+            wf.addCopyFileToSource(tracy_client.getEmittedBin(), "runtimes/win-arm64/native/TracyClient.dll");
         }
     }
 
