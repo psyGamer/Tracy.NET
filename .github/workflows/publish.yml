@@ -28,11 +28,13 @@ jobs:
       - name: Build native libraries
         run: |
           cd native
-          zig build all -Doptimize=ReleaseFast
+          # zig build all -Doptimize=ReleaseFast
+          # TODO: Re-enable optimizations
+          zig build all
 
       # Ensures that the assemblies for the MSBuild task are present before packaging
       - name: Build MSBuild tasks
-        run: dotnet build Tracy.NET
+        run: dotnet build Tracy.NET.MSBuild
 
       - name: Build bindings
         run: dotnet build Tracy.NET -c Release -p:Version=${{ env.CURRENT_TAG }}
