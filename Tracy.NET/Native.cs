@@ -75,6 +75,14 @@ internal static unsafe partial class Native
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void TracyEmitFrameImage(void* image, ushort w, ushort h, byte offset, int flip);
 
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_message")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitMessage(CString txt, ulong size, int callstack);
+
+    [LibraryImport(LibraryName, EntryPoint = "___tracy_emit_frame_imageC")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void TracyEmitMessageColor(CString txt, ulong size, uint color, int callstack);
+
     #endregion
     #region Types
 

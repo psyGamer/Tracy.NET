@@ -145,6 +145,20 @@ public unsafe class Tracy
     }
 
     #endregion
+    #region Messages
+
+    /// Logs a message to tracy
+    public static void Message(string text, uint color = 0x000000)
+    {
+        using var textStr = GetCString(text, out ulong textLen);
+
+        if (color == 0x000000)
+            TracyEmitMessageColor(textStr, textLen, color, 0);
+        else
+            TracyEmitMessage(textStr, textLen, 0);
+    }
+
+    #endregion
     #region Internal
 
     // Tracy expects most string to be of static lifetime, so we need to cache them
